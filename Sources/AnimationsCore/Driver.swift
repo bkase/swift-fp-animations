@@ -6,7 +6,7 @@ public final class Drive: NSObject {
   /// playgrounds don't crash.
   private var maxSteps: Int
   private var displayLink: CADisplayLink!
-  private var animations: [(startTime: CFAbsoluteTime, Animation<Void>)] = []
+  private var animations: [(startTime: CFAbsoluteTime, Animation<Unit>)] = []
 
   public init(maxSteps: Int = Int.max) {
     self.maxSteps = maxSteps
@@ -16,7 +16,7 @@ public final class Drive: NSObject {
     self.displayLink.add(to: RunLoop.main, forMode: .commonModes)
   }
 
-  public func append(animation: Animation<Void>) {
+  public func append(animation: Animation<Unit>) {
     guard animation.duration > 0 else { return }
 
     DispatchQueue.main.async {
@@ -38,9 +38,9 @@ public final class Drive: NSObject {
       let (startTime, animation) = startTimeAndAnimation
       let t = (time - startTime) / animation.duration
       if t <= 1 {
-        animation.value(t)
+        _ = animation.value(t)
       } else {
-        animation.value(1)
+        _ = animation.value(1)
         indicesToRemove.append(idx)
       }
     }

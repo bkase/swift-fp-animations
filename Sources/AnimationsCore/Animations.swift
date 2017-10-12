@@ -3,7 +3,7 @@ import CoreGraphics
 // todo: change mentions of time to progress
 public typealias Progress = CFAbsoluteTime
 
-public struct Animation<A> {
+public struct Animation<A: Averagable> {
   public let duration: CFAbsoluteTime
   private let _value: (CFAbsoluteTime) -> A
 
@@ -26,16 +26,17 @@ public struct Animation<A> {
   }
 
   /// Converts a pure animation into an effectful animatino.
-  public func `do`(_ f: @escaping (A) -> Void) -> Animation<Void> {
+  public func `do`(_ f: @escaping (A) -> Void) -> Animation<Unit> {
     return .init(duration: self.duration) { t in
       f(self.value(t))
+      return Unit.unit
     }
   }
 
   /// Binds the animation to an object with a keyPath.
-  public func bind<B>(_ obj: B, with keyPath: ReferenceWritableKeyPath<B, A>) -> Animation<Void> {
+  public func bind<B>(_ obj: B, with keyPath: ReferenceWritableKeyPath<B, A.Average>) -> Animation<Unit> {
     return self.do { a in
-      obj[keyPath: keyPath] = a
+      obj[keyPath: keyPath] = a.avg
     }
   }
 
@@ -68,22 +69,23 @@ public struct Animation<A> {
         : rhs.value((t - ratio) / (1 - ratio))
     }
   }
-
-  /// Runs two animations in paralllel. If one is longer than the other, the shorter one will stop at it's
+    
+  /// Runs two animations in paralllel and combines the results. If one is longer than the other, the shorter one will stop at it's
   /// last value until the longer one finishes.
-  public static func + <B> (lhs: Animation, rhs: Animation<B>) -> Animation<(A, B)> {
+  public static func + (lhs: Animation, rhs: Animation) -> Animation {
     let newDuration = max(lhs.duration, rhs.duration)
-
+    
     return .init(duration: newDuration) { t in
-      let a = lhs.value(min(1, t * newDuration / lhs.duration))
-      let b = rhs.value(min(1, t * newDuration / rhs.duration))
-      return (a, b)
+      let a1 = lhs.value(min(1, t * newDuration / lhs.duration))
+      let a2 = rhs.value(min(1, t * newDuration / rhs.duration))
+      return a1 <> a2
     }
   }
 
   /// An animation of zero duration that does nothing. The `.value()` function of this animation should
   /// never be called. In general, zero duration animations should just be skipped.
-  public static var empty: Animation {
+  /// A multiplicative identity
+  public static var one: Animation {
     return .init(duration: 0) { _ in fatalError() }
   }
 

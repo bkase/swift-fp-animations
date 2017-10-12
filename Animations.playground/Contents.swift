@@ -42,27 +42,57 @@ paralleled.value(1)
 // verification of associativity:
 let assoc1 = step1 * (step2 * step3)
 let assoc2 = (step1 * step2) * step3
-"\(assoc1.value(0.5)) == \(assoc2.value(0.5))"
-"\(assoc1.value(0.25)) == \(assoc2.value(0.25))"
-"\(assoc1.value(0.75)) == \(assoc2.value(0.75))"
+"\(assoc1.value(0.5).avg) == \(assoc2.value(0.5).avg)"
+"\(assoc1.value(0.25).avg) == \(assoc2.value(0.25).avg)"
+"\(assoc1.value(0.75).avg) == \(assoc2.value(0.75).avg)"
 
-// proof of non-distributivity:
+// verification of associativity, commutativity of +
+let assocP1 = step1 + (step2 + step3)
+let assocP2 = (step1 + step2) + step3
+let commuteP = (step2 + step1) + step3
+"\(assocP1.value(0.5).avg) == \(assocP2.value(0.5).avg) == \(commuteP.value(0.5).avg)"
+"\(assocP1.value(0.25).avg) == \(assocP2.value(0.25).avg) == \(commuteP.value(0.25).avg)"
+"\(assocP1.value(0.75).avg) == \(assocP2.value(0.75).avg) == \(commuteP.value(0.75).avg)"
 
-// first this doesn't compile since `+` goes `a -> b -> (a, b)`
-//(step1 * (step2 + step3)).value(0.5)
-//(step1 * step2 + step1 * step3)).value(0.5)
+// (almost) proof of (one-side) of distributivity
+// let A, B, C be animations
+// WTS: A * (B + C) = A * B + A * C
+// ->
+//  A * (B + C)
+//  A * (B <> C) (since + forms a semigroup now)
+//  A and then (B <> C) (by definition)
+//  (A and-then B) <> (A and-then C) (I can't prove this step but it feels right Please help here)
+//  (A * B) + (A * C) by defition
 
-// If we flip the roles of `*` and `+` we get distribution, but we still
-// don't have a semiring cause `+` has the wrong signature.
-let distLhs = step1 + (step2 * step3)
-let distRhs = (step1 + step2) * (step1 + step3)
-"\(distLhs.value(0.1)) == \(distRhs.value(0.1))"
-"\(distLhs.value(0.2)) == \(distRhs.value(0.2))"
-"\(distLhs.value(0.3)) == \(distRhs.value(0.3))"
-"\(distLhs.value(0.4)) == \(distRhs.value(0.4))"
-"\(distLhs.value(0.5)) == \(distRhs.value(0.5))"
-"\(distLhs.value(0.6)) == \(distRhs.value(0.6))"
+// verification of distributivity:
 
+let distLhs = step1 * (step2 + step3)
+let distRhs = (step1 * step2) + (step1 * step3)
+"\(distLhs.value(0.1).avg) == \(distRhs.value(0.1).avg)"
+"\(distLhs.value(0.2).avg) == \(distRhs.value(0.2).avg)"
+"\(distLhs.value(0.3).avg) == \(distRhs.value(0.3).avg)"
+"\(distLhs.value(0.4).avg) == \(distRhs.value(0.4).avg)"
+"\(distLhs.value(0.5).avg) == \(distRhs.value(0.5).avg)"
+"\(distLhs.value(0.6).avg) == \(distRhs.value(0.6).avg)"
+
+// verification of multiplicative identity
+let onLeft = step1 * .one
+let onRight = .one * step1
+"\(step1.value(0.5).avg) == \(onLeft.value(0.5).avg) == \(onRight.value(0.5).avg)"
+"\(step1.value(0.25).avg) == \(onLeft.value(0.25).avg) == \(onRight.value(0.25).avg)"
+"\(step1.value(0.75).avg) == \(onLeft.value(0.75).avg) == \(onRight.value(0.75).avg)"
+
+// Therefore we have a semiring (with no additive identity)!
+// it's also morally an idempotent semiring if you consider two things equivalent that have the same averages
+
+
+// recover the tupling operation
+infix operator ++: AdditionPrecedence
+func ++<A,B>(lhs: Animation<A>, rhs: Animation<B>) -> Animation<Tuple2<A, B>> {
+    let left = lhs.map{ a in Tuple2(a, B.empty) }
+    let right = rhs.map{ b in Tuple2(A.empty, b) }
+    return left + right
+}
 
 
 let redSquare = UIView(frame: .init(x: 0, y: 0, width: 100, height: 100))
@@ -105,12 +135,11 @@ let blueAnimation =
     .repeating(count: Int.max)
     .bind(blueSquare, with: \.transform.tx)
 
-let final = redAnimation + blueAnimation
+let final = redAnimation ++ blueAnimation
 
 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-  driver.append(animation: final.map { _ in () })
+  driver.append(animation: final.map { _ in Unit.unit })
 }
-
 
 
 
