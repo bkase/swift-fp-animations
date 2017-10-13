@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 infix operator <>: AdditionPrecedence
 public protocol Semigroup {
   static func <>(lhs: Self, rhs: Self) -> Self
@@ -17,13 +16,7 @@ public protocol Monoid: Semigroup {
   static var empty: Self { get }
 }
 
-/// Law: (A <> A).avg = A.avg
-public protocol Averagable: Monoid {
-  associatedtype Average
-  var avg: Average { get }
-}
-
-public struct FloatAverage<A: FloatingPoint>: Averagable {
+public struct FloatAverage<A: FloatingPoint>: Semigroup {
   let sum: A
   let count: Int
   
@@ -40,17 +33,10 @@ public struct FloatAverage<A: FloatingPoint>: Averagable {
   }
   
   public static func <>(lhs: FloatAverage, rhs: FloatAverage) -> FloatAverage {
-    // the empty makes this a little awkward
-    let sum = (lhs.sum.isNaN ? 0 : lhs.sum) +
-      (rhs.sum.isNaN ? 0 : rhs.sum)
     return FloatAverage(
-      sum: sum.isZero ? A.nan : sum,
+      sum: lhs.sum + rhs.sum,
       count: lhs.count + rhs.count
     )
-  }
-  
-  public static var empty: FloatAverage {
-    return FloatAverage(sum: A.nan, count: 0)
   }
   
   public var avg: Average {
@@ -64,8 +50,7 @@ public struct FloatAverage<A: FloatingPoint>: Averagable {
  self.count = 1
  }
  }*/
-/// The average of two things are just those two things' averages
-public struct Tuple2<A: Averagable, B: Averagable>: Averagable {
+public struct Tuple2<A: Semigroup, B: Semigroup>: Semigroup {
   public let a: A
   public let b: B
   public init(_ a: A, _ b: B) {
@@ -73,18 +58,8 @@ public struct Tuple2<A: Averagable, B: Averagable>: Averagable {
     self.b = b
   }
   
-  public typealias Average = (A.Average, B.Average)
-  
-  public static var empty: Tuple2 {
-    return Tuple2(A.empty, B.empty)
-  }
-  
   public static func <>(lhs: Tuple2, rhs: Tuple2) -> Tuple2 {
     return Tuple2(lhs.a <> rhs.a, lhs.b <> rhs.b)
-  }
-  
-  public var avg: (A.Average, B.Average) {
-    return (a.avg, b.avg)
   }
 }
 
@@ -92,7 +67,7 @@ public struct Tuple2<A: Averagable, B: Averagable>: Averagable {
 public struct Unit {}
 
 /// The average of two units is unit
-extension Unit: Averagable {
+extension Unit: Monoid {
   public typealias Average = ()
   
   public static let unit = Unit()
@@ -107,3 +82,4 @@ extension Unit: Averagable {
     return
   }
 }
+

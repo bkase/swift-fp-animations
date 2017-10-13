@@ -3,7 +3,7 @@ import CoreGraphics
 // todo: change mentions of time to progress
 public typealias Progress = CFAbsoluteTime
 
-public struct Animation<A: Averagable> {
+public struct Animation<A: Semigroup> {
   public let duration: CFAbsoluteTime
   private let _value: (CFAbsoluteTime) -> A
 
@@ -30,13 +30,6 @@ public struct Animation<A: Averagable> {
     return .init(duration: self.duration) { t in
       f(self.value(t))
       return Unit.unit
-    }
-  }
-
-  /// Binds the animation to an object with a keyPath.
-  public func bind<B>(_ obj: B, with keyPath: ReferenceWritableKeyPath<B, A.Average>) -> Animation<Unit> {
-    return self.do { a in
-      obj[keyPath: keyPath] = a.avg
     }
   }
 
@@ -116,7 +109,37 @@ public struct Animation<A: Averagable> {
   }
 }
 
+public struct FunctionS<A, S: Semigroup>: Semigroup {
+  public let run: (A) -> S
+  
+  public init(_ run: @escaping (A) -> S) {
+    self.run = run
+  }
+  
+  public static func <>(lhs: FunctionS, rhs: FunctionS) -> FunctionS {
+    return FunctionS { a in
+      lhs.run(a) <> rhs.run(a)
+    }
+  }
+}
+
+public func ap<A, B>(_ f: Animation<FunctionS<A, B>>, _ a: Animation<A>) -> Animation<B> {
+  return Animation<B>(duration: max(a.duration, f.duration)) { t in
+    f.value(t).run(a.value(t))
+  }
+}
+
 /// Creates a constant animation that stays at a value for all time.
 public func const<A>(value: A, duration: CFAbsoluteTime) -> Animation<A> {
   return Animation(duration: duration, value: { _ in value })
+}
+
+// we need conditional conformance here...
+extension Animation where A == FloatAverage<CGFloat> {
+  /// Binds the animation to an object with a keyPath.
+  public func bind<B>(_ obj: B, with keyPath: ReferenceWritableKeyPath<B,   CGFloat>) -> Animation<Unit> {
+    return self.do { a in
+      obj[keyPath: keyPath] = a.avg
+    }
+  }
 }

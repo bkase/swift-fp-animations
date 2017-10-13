@@ -87,13 +87,17 @@ let onRight = .one * step1
 
 
 // recover the tupling operation
+typealias AaToBbToAb<A: Semigroup, B: Semigroup> = FunctionS<Tuple2<A, A>, FunctionS<Tuple2<B, B>, Tuple2<A, B>>>
 infix operator ++: AdditionPrecedence
 func ++<A,B>(lhs: Animation<A>, rhs: Animation<B>) -> Animation<Tuple2<A, B>> {
-    let left = lhs.map{ a in Tuple2(a, B.empty) }
-    let right = rhs.map{ b in Tuple2(A.empty, b) }
-    return left + right
+  let aa = lhs.map{ a in Tuple2<A, A>(a, a) }
+  let bb = rhs.map{ b in Tuple2<B, B>(b, b) }
+  let f = AaToBbToAb<A, B> { aa in
+    return FunctionS { bb in Tuple2<A, B>(aa.a, bb.b) }
+  }
+  let af = const(value: f, duration: max(aa.duration, bb.duration))
+  return ap(ap(af, aa), bb)
 }
-
 
 let redSquare = UIView(frame: .init(x: 0, y: 0, width: 100, height: 100))
 redSquare.backgroundColor = .red
