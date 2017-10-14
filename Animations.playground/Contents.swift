@@ -85,15 +85,14 @@ let onRight = .one * step1
 // Therefore we have a semiring (with no additive identity)!
 // it's also morally an idempotent semiring if you consider two things equivalent that have the same averages
 
+typealias AAtoBBtoAB<A: Semigroup,B: Semigroup> = (Tuple2<A, A>) -> (Tuple2<B, B>) -> Tuple2<A, B>
 
 // recover the tupling operation
-typealias AaToBbToAb<A: Semigroup, B: Semigroup> = FunctionS<Tuple2<A, A>, FunctionS<Tuple2<B, B>, Tuple2<A, B>>>
 infix operator ++: AdditionPrecedence
 func ++<A,B>(lhs: Animation<A>, rhs: Animation<B>) -> Animation<Tuple2<A, B>> {
   let aa = lhs.map{ a in Tuple2<A, A>(a, a) }
   let bb = rhs.map{ b in Tuple2<B, B>(b, b) }
-  let f = AaToBbToAb<A, B> { aa in
-    return FunctionS { bb in Tuple2<A, B>(aa.a, bb.b) }
+  let f: AAtoBBtoAB<A,B> = { aa in { bb in Tuple2<A, B>(aa.a, bb.b) }
   }
   let af = const(value: f, duration: max(aa.duration, bb.duration))
   return ap(ap(af, aa), bb)

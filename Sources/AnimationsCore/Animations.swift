@@ -3,7 +3,7 @@ import CoreGraphics
 // todo: change mentions of time to progress
 public typealias Progress = CFAbsoluteTime
 
-public struct Animation<A: Semigroup> {
+public struct Animation<A> {
   public let duration: CFAbsoluteTime
   private let _value: (CFAbsoluteTime) -> A
 
@@ -63,17 +63,7 @@ public struct Animation<A: Semigroup> {
     }
   }
     
-  /// Runs two animations in paralllel and combines the results. If one is longer than the other, the shorter one will stop at it's
-  /// last value until the longer one finishes.
-  public static func + (lhs: Animation, rhs: Animation) -> Animation {
-    let newDuration = max(lhs.duration, rhs.duration)
-    
-    return .init(duration: newDuration) { t in
-      let a1 = lhs.value(min(1, t * newDuration / lhs.duration))
-      let a2 = rhs.value(min(1, t * newDuration / rhs.duration))
-      return a1 <> a2
-    }
-  }
+  
 
   /// An animation of zero duration that does nothing. The `.value()` function of this animation should
   /// never be called. In general, zero duration animations should just be skipped.
@@ -123,9 +113,9 @@ public struct FunctionS<A, S: Semigroup>: Semigroup {
   }
 }
 
-public func ap<A, B>(_ f: Animation<FunctionS<A, B>>, _ a: Animation<A>) -> Animation<B> {
+public func ap<A, B>(_ f: Animation<(A) -> B>, _ a: Animation<A>) -> Animation<B> {
   return Animation<B>(duration: max(a.duration, f.duration)) { t in
-    f.value(t).run(a.value(t))
+    f.value(t)(a.value(t))
   }
 }
 
@@ -140,6 +130,20 @@ extension Animation where A == FloatAverage<CGFloat> {
   public func bind<B>(_ obj: B, with keyPath: ReferenceWritableKeyPath<B,   CGFloat>) -> Animation<Unit> {
     return self.do { a in
       obj[keyPath: keyPath] = a.avg
+    }
+  }
+}
+
+extension Animation where A: Semigroup {
+  /// Runs two animations in paralllel and combines the results. If one is longer than the other, the shorter one will stop at it's
+  /// last value until the longer one finishes.
+  public static func + (lhs: Animation, rhs: Animation) -> Animation {
+    let newDuration = max(lhs.duration, rhs.duration)
+  
+    return .init(duration: newDuration) { t in
+      let a1 = lhs.value(min(1, t * newDuration / lhs.duration))
+      let a2 = rhs.value(min(1, t * newDuration / rhs.duration))
+      return a1 <> a2
     }
   }
 }
