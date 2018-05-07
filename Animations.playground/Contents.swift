@@ -1,10 +1,10 @@
 import Foundation
-import AnimationsCore
 import UIKit
+import AnimationsCore
 
-let step1 = linear(from: 0, to: 200, in: 1)
-let step2 = linear(from: 50, to: 200, in: 3)
-let step3 = linear(from: 200, to: 300, in: 1)
+let step1: Animation<CGFloatAverage> = linear(from: 0, to: 200, in: 1)
+let step2: Animation<CGFloatAverage> = linear(from: 50, to: 200, in: 3)
+let step3: Animation<CGFloatAverage> = linear(from: 200, to: 300, in: 1)
 let sequenced = step1 * step2 * step3
 
 extension CGAffineTransform {
@@ -30,7 +30,7 @@ sequenced.value(0.6)
 sequenced.value(0.8)
 sequenced.value(1)
 
-let paralleled = step1 + step2
+let paralleled: Animation<CGFloatAverage> = step1 + step2
 
 paralleled.value(0)
 paralleled.value(0.2)
@@ -42,61 +42,51 @@ paralleled.value(1)
 // verification of associativity:
 let assoc1 = step1 * (step2 * step3)
 let assoc2 = (step1 * step2) * step3
-"\(assoc1.value(0.5).avg) == \(assoc2.value(0.5).avg)"
-"\(assoc1.value(0.25).avg) == \(assoc2.value(0.25).avg)"
-"\(assoc1.value(0.75).avg) == \(assoc2.value(0.75).avg)"
+"\(assoc1.value(0.5)!.avg) == \(assoc2.value(0.5)!.avg)"
+"\(assoc1.value(0.25)!.avg) == \(assoc2.value(0.25)!.avg)"
+"\(assoc1.value(0.75)!.avg) == \(assoc2.value(0.75)!.avg)"
 
 // verification of associativity, commutativity of +
-let assocP1 = step1 + (step2 + step3)
-let assocP2 = (step1 + step2) + step3
-let commuteP = (step2 + step1) + step3
-"\(assocP1.value(0.5).avg) == \(assocP2.value(0.5).avg) == \(commuteP.value(0.5).avg)"
-"\(assocP1.value(0.25).avg) == \(assocP2.value(0.25).avg) == \(commuteP.value(0.25).avg)"
-"\(assocP1.value(0.75).avg) == \(assocP2.value(0.75).avg) == \(commuteP.value(0.75).avg)"
-
-// (almost) proof of (one-side) of distributivity
-// let A, B, C be animations
-// WTS: A * (B + C) = A * B + A * C
-// ->
-//  A * (B + C)
-//  A * (B <> C) (since + forms a semigroup now)
-//  A and then (B <> C) (by definition)
-//  (A and-then B) <> (A and-then C) (I can't prove this step but it feels right Please help here)
-//  (A * B) + (A * C) by defition
+let assocP1: Animation<CGFloatAverage> = step1 + (step2 + step3)
+let assocP2: Animation<CGFloatAverage> = (step1 + step2) + step3
+let commuteP: Animation<CGFloatAverage> = (step2 + step1) + step3
+"\(assocP1.value(0.5)!.avg) == \(assocP2.value(0.5)!.avg) == \(commuteP.value(0.5)!.avg)"
+"\(assocP1.value(0.25)!.avg) == \(assocP2.value(0.25)!.avg) == \(commuteP.value(0.25)!.avg)"
+"\(assocP1.value(0.75)!.avg) == \(assocP2.value(0.75)!.avg) == \(commuteP.value(0.75)!.avg)"
 
 // verification of distributivity:
 
 let distLhs = step1 * (step2 + step3)
 let distRhs = (step1 * step2) + (step1 * step3)
-"\(distLhs.value(0.1).avg) == \(distRhs.value(0.1).avg)"
-"\(distLhs.value(0.2).avg) == \(distRhs.value(0.2).avg)"
-"\(distLhs.value(0.3).avg) == \(distRhs.value(0.3).avg)"
-"\(distLhs.value(0.4).avg) == \(distRhs.value(0.4).avg)"
-"\(distLhs.value(0.5).avg) == \(distRhs.value(0.5).avg)"
-"\(distLhs.value(0.6).avg) == \(distRhs.value(0.6).avg)"
+"\(distLhs.value(0.1)!.avg) == \(distRhs.value(0.1)!.avg)"
+"\(distLhs.value(0.2)!.avg) == \(distRhs.value(0.2)!.avg)"
+"\(distLhs.value(0.3)!.avg) == \(distRhs.value(0.3)!.avg)"
+"\(distLhs.value(0.4)!.avg) == \(distRhs.value(0.4)!.avg)"
+"\(distLhs.value(0.5)!.avg) == \(distRhs.value(0.5)!.avg)"
+"\(distLhs.value(0.6)!.avg) == \(distRhs.value(0.6)!.avg)"
 
 // verification of multiplicative identity
 let onLeft = step1 * .one
 let onRight = .one * step1
-"\(step1.value(0.5).avg) == \(onLeft.value(0.5).avg) == \(onRight.value(0.5).avg)"
-"\(step1.value(0.25).avg) == \(onLeft.value(0.25).avg) == \(onRight.value(0.25).avg)"
-"\(step1.value(0.75).avg) == \(onLeft.value(0.75).avg) == \(onRight.value(0.75).avg)"
+"\(step1.value(0.5)!.avg) == \(onLeft.value(0.5)!.avg) == \(onRight.value(0.5)!.avg)"
+"\(step1.value(0.25)!.avg) == \(onLeft.value(0.25)!.avg) == \(onRight.value(0.25)!.avg)"
+"\(step1.value(0.75)!.avg) == \(onLeft.value(0.75)!.avg) == \(onRight.value(0.75)!.avg)"
+
+// verification of additive identity
+let onLeft_ = step1 + .zero
+let onRight_ = .zero + step1
+"\(step1.value(0.5)!.avg) == \(onLeft_.value(0.5)!.avg) == \(onRight_.value(0.5)!.avg)"
+"\(step1.value(0.25)!.avg) == \(onLeft_.value(0.25)!.avg) == \(onRight_.value(0.25)!.avg)"
+"\(step1.value(0.75)!.avg) == \(onLeft_.value(0.75)!.avg) == \(onRight_.value(0.75)!.avg)"
+
+// verification of annihalation of zero
+let annLeft = .zero * step1
+let annRight = step1 * .zero
+"\(Animation<CGFloatAverage>.zero) == \(annLeft) == \(annRight)"
 
 // Therefore we have a semiring (with no additive identity)!
 // it's also morally an idempotent semiring if you consider two things equivalent that have the same averages
 
-typealias AAtoBBtoAB<A: Semigroup,B: Semigroup> = (Tuple2<A, A>) -> (Tuple2<B, B>) -> Tuple2<A, B>
-
-// recover the tupling operation
-infix operator ++: AdditionPrecedence
-func ++<A,B>(lhs: Animation<A>, rhs: Animation<B>) -> Animation<Tuple2<A, B>> {
-  let aa = lhs.map{ a in Tuple2<A, A>(a, a) }
-  let bb = rhs.map{ b in Tuple2<B, B>(b, b) }
-  let f: AAtoBBtoAB<A,B> = { aa in { bb in Tuple2<A, B>(aa.a, bb.b) }
-  }
-  let af = const(value: f, duration: max(aa.duration, bb.duration))
-  return ap(ap(af, aa), bb)
-}
 
 let redSquare = UIView(frame: .init(x: 0, y: 0, width: 100, height: 100))
 redSquare.backgroundColor = .red

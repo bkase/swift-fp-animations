@@ -6,8 +6,10 @@
 //
 
 import Foundation
+import CoreGraphics
 
 infix operator <>: AdditionPrecedence
+
 public protocol Semigroup {
   static func <>(lhs: Self, rhs: Self) -> Self
 }
@@ -16,60 +18,76 @@ public protocol Monoid: Semigroup {
   static var empty: Self { get }
 }
 
-public struct FloatAverage<A: FloatingPoint>: Semigroup {
-  let sum: A
-  let count: Int
-  
-  public typealias Average = A
-  
-  public init(_ value: A) {
-    self.sum = value
-    self.count = 1
-  }
-  
-  private init(sum: A, count: Int) {
-    self.sum = sum
-    self.count = count
-  }
-  
-  public static func <>(lhs: FloatAverage, rhs: FloatAverage) -> FloatAverage {
-    return FloatAverage(
-      sum: lhs.sum + rhs.sum,
-      count: lhs.count + rhs.count
-    )
-  }
-  
-  public var avg: Average {
-    return sum / A(count)
-  }
+public protocol Average {
+    associatedtype AverageType
+    var avg: AverageType { get }
 }
-// Not sure why I can't get this to work?
-/*extension FloatAverage: ExpressibleByFloatLiteral {
- init(floatLiteral: A) {
- self.sum = floatLiteral
- self.count = 1
- }
- }*/
-public struct Tuple2<A: Semigroup, B: Semigroup>: Semigroup {
+extension Optional: Average where Wrapped: Average {
+    public typealias AverageType = Optional<Wrapped.AverageType>
+    public var avg: AverageType {
+        switch self {
+        case .some(let x):
+            return x.avg
+        case .none:
+            return nil
+        }
+    }
+}
+
+public protocol Semiring {
+    static var one: Self { get }
+    static var zero: Self { get }
+    static func *(lhs: Self, rhs: Self) -> Self
+    static func +(lhs: Self, rhs: Self) -> Self
+}
+
+public struct Tuple2<A, B> {
   public let a: A
   public let b: B
   public init(_ a: A, _ b: B) {
     self.a = a
     self.b = b
   }
-  
-  public static func <>(lhs: Tuple2, rhs: Tuple2) -> Tuple2 {
-    return Tuple2(lhs.a <> rhs.a, lhs.b <> rhs.b)
-  }
 }
+extension Tuple2: Semigroup where A: Semigroup, B: Semigroup {
+    public static func <>(lhs: Tuple2, rhs: Tuple2) -> Tuple2 {
+        return Tuple2(lhs.a <> rhs.a, lhs.b <> rhs.b)
+    }
+}
+extension Tuple2: Average where A: FloatingPoint, B == Int {
+    public typealias AverageType = A
+    public var avg: AverageType {
+        return a / A(b)
+    }
+}
+public struct FloatAverage<A: FloatingPoint>: Semigroup, Average {
+    let tuple: Tuple2<A, Int>
+    public typealias AverageType = A
+    
+    public init(sum: A, count: Int) {
+        self.tuple = Tuple2(sum, count)
+    }
+    public init(_ a: A) {
+        self.tuple = Tuple2(a, 1)
+    }
+    
+    public static func <>(lhs: FloatAverage, rhs: FloatAverage) -> FloatAverage {
+        return FloatAverage(
+            sum: lhs.tuple.a + rhs.tuple.a,
+            count: lhs.tuple.b + rhs.tuple.b
+        )
+    }
+    public var avg: AverageType {
+        return self.tuple.avg
+    }
+}
+public typealias CGFloatAverage = FloatAverage<CGFloat>
 
 // We need ExpressibleByVoidLiteral!
 public struct Unit {}
 
 /// The average of two units is unit
 extension Unit: Monoid {
-  public typealias Average = ()
-  
   public static let unit = Unit()
   
   public static func <>(lhs: Unit, rhs: Unit) -> Unit {
@@ -78,8 +96,11 @@ extension Unit: Monoid {
   public static var empty: Unit {
     return unit
   }
-  public var avg: () {
-    return
-  }
 }
 
+extension Unit: Average {
+    public typealias Average = ()
+    public var avg: () {
+        return
+    }
+}
