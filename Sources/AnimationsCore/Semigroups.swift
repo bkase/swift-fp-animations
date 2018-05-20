@@ -40,6 +40,14 @@ public protocol Semiring {
     static func *(lhs: Self, rhs: Self) -> Self
     static func +(lhs: Self, rhs: Self) -> Self
 }
+extension Semiring {
+    func mult(_ rhs: Self) -> Self {
+        return self * rhs
+    }
+    func add(_ rhs: Self) -> Self {
+        return self + rhs
+    }
+}
 
 public struct Tuple2<A, B> {
   public let a: A

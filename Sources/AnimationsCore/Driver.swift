@@ -1,6 +1,43 @@
 import QuartzCore
 import UIKit
 
+public enum Renderer {
+    
+    public static func render(
+        filename: String,
+        animation: Animation<Unit>,
+        fps: Double,
+        canvas: UIView,
+        cb: @escaping (URL) -> ()
+    ) {
+        var currentStep : Int = 0
+        let totalSteps = Int(animation.duration * fps)
+        print("Recording for frames", totalSteps)
+        var imgs : [UIImage] = []
+        
+        while currentStep <= totalSteps {
+            let next = Double(currentStep) / Double(totalSteps)
+            let _ = animation.value((next < 1) ? next : 1)
+            imgs.append(snapshot(view: canvas))
+            currentStep += 1
+        }
+        
+        let videoGenerator = VideoGenerator.current
+        videoGenerator.scaleWidth = canvas.bounds.width
+        videoGenerator.fileName = filename
+        print("I think seconds", animation.duration)
+        videoGenerator.videoDurationInSeconds = animation.duration
+        print("Length: ", imgs.count)
+        videoGenerator.generate(withImages: imgs, andAudios: [], andType: VideoGenerator.VideoGeneratorType.single, { (progress) in
+            print(progress)
+        }, success: { (url) in
+            cb(url)
+        }) { (error) in
+            print(error)
+        }
+    }
+}
+
 public final class Drive: NSObject {
   /// `maxSteps` is for use in a playground only. It kills the display link after that many steps so that
   /// playgrounds don't crash.

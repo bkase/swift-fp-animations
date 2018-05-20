@@ -179,6 +179,9 @@ extension Animation {
         case .cancelled:
             return .cancelled
         case ._runnable(_, let value):
+            if delay == 0 {
+                return self
+            }
             return const(value: value(0), duration: delay).sequence(self)
         }
     }
